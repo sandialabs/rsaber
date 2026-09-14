@@ -1,0 +1,19 @@
+Package: rsaber
+Title: Sequential Adaptive Bayesian Estimation for Reliability
+Version: 0.0.0.1
+Imports: stats, methods, future, doFuture, foreach
+Depends: R (>= 4.1.0)
+Suggests: tinytest
+Authors@R: c(person("Casey M."  , "Jelsema", email="cmjelse@sandia.gov", role=c("aut", "cre") ),
+             person("Mason", "Parsons", email="mparson@sandia.gov", role="ctb" ),
+             person("Olivia", "Beck",   email="olbeck@sandia.gov", role="ctb" ) )
+Description: Implementation of the SABER method for modeling pass/fail data over 
+    time. Includes methodology to model proportions of batches over time, 
+    set sampling rate for future batches in order to demonstrate a requirement, 
+    estimate the number of failures for each batch or cumulatively.
+License: BSD-3
+Encoding: UTF-8
+LazyData: true
+Config/roxygen2/version: 8.0.0
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
