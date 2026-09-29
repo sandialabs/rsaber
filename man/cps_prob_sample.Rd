@@ -4,14 +4,16 @@
 \alias{cps_prob_sample}
 \title{Probability for sampling next unit in CPS}
 \usage{
-cps_prob_sample(Xsim_mc, tidx, preq, forecast_type, control)
+cps_prob_sample(Xsim_mc, tidx, preq, alpha, forecast_type, control)
 }
 \arguments{
 \item{Xsim_mc}{(matrix) The MCMC for the current time step.}
 
 \item{tidx}{(numeric) Vector of time points associated with each unit.}
 
-\item{preq}{(numeric) The requirement on the defect rate}
+\item{preq}{(numeric) The requirement on the defect rate.}
+
+\item{alpha}{(numeric) Setting the credibility level.}
 
 \item{forecast_type}{(string) Type of forecast, see details.}
 
@@ -55,6 +57,7 @@ cps_prob_sample(
   saber_fit = fit,
   pest = fit[["pest"]][nrow(fit)],
   preq = 0.10,
+  alpha = 0.05,
   tidx_next = max(tidx) + 1,
   forecast_type = "estimated"
 )

@@ -8,6 +8,7 @@ saber_control(
   prior = c(1, 1),
   lambda = NULL,
   forget = c("exponential", "fixed_window", "total_samples", "none"),
+  sample_penalty = 1,
   frame = c("total", "unsampled", "accepted")
 )
 }

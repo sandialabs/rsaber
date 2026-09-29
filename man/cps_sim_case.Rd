@@ -35,6 +35,8 @@ cps_sim_case(
 \item{cps_control}{object of class \code{cps_control}.}
 
 \item{seed}{(numeric) Seed for the random number generator.}
+
+\item{verbose}{(logical) Whether or not to print indication of progress through simulation.}
 }
 \value{
 A list with the following elements:

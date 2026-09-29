@@ -148,7 +148,8 @@ cps_bound <- function( x, tidx, alpha=NULL, control = NULL, saber_fit=NULL ){
 #' 
 #' @param Xsim_mc (matrix) The MCMC for the current time step.
 #' @param tidx (numeric) Vector of time points associated with each unit.
-#' @param preq (numeric) The requirement on the defect rate
+#' @param preq (numeric) The requirement on the defect rate.
+#' @param alpha (numeric) Setting the credibility level.
 #' @param forecast_type (string) Type of forecast, see details.
 #' @param control object of class [saber_control()]
 #' 
@@ -189,6 +190,7 @@ cps_bound <- function( x, tidx, alpha=NULL, control = NULL, saber_fit=NULL ){
 #'   saber_fit = fit,
 #'   pest = fit[["pest"]][nrow(fit)],
 #'   preq = 0.10,
+#'   alpha = 0.05,
 #'   tidx_next = max(tidx) + 1,
 #'   forecast_type = "estimated"
 #' )
@@ -196,63 +198,56 @@ cps_bound <- function( x, tidx, alpha=NULL, control = NULL, saber_fit=NULL ){
 #' 
 #' @export
 #' 
-cps_prob_sample <- function(Xsim_mc, tidx, preq, forecast_type, control ){
+cps_prob_sample <- function(Xsim_mc, tidx, preq, alpha, forecast_type, control ){
   
   indx <- length(tidx)
   prior <- control[["prior"]]
   lambda <- control[["lambda"]]
   forget <- control[["forget"]]
-  
+  srate_penalty <- ifelse( 
+    is.null(control[["sample_penalty"]]), 
+    1, control[["sample_penalty"]]
+  )
   # Current estimate of defect rate for each MC sequence
-  post_pest <- t(apply( Xsim_mc[1:(indx-1), ], MARGIN=2, FUN=function(XX, tidx_ii){
-    out1 <- saber_posterior( XX, rep(1,indx-1), tidx_ii, 
-                             prior=prior,  lambda=lambda, forget=forget)
-    out1
+  pests <- t(apply( Xsim_mc[1:(indx-1), ], MARGIN=2, FUN=function(XX, tidx_ii){
+    ab <- saber_posterior( XX, rep(1,indx-1), tidx_ii,
+                           prior=prior,  lambda=lambda, forget=forget)
+    dbetabinomial(1, 1, ab[1], ab[2]) 
   },
   tidx_ii = tidx[ 1:(indx-1) ]
   ))
   
-  iseq <- seq_len( indx-1 )
-  
   # Probability to tail requirement if next x=0
   Xsim_mc[ indx, ] <- 0
-  post0 <- t(apply( Xsim_mc[1:indx, ], MARGIN=2, FUN=function(XX, tidx_ii){
-    out1 <- saber_posterior( XX, rep(1,indx), tidx_ii, 
-                             prior=prior,  lambda=lambda, forget=forget)
-    out1
+  prob_sample_x0 <- t(apply( Xsim_mc[1:indx, ], MARGIN=2, FUN=function(XX, tidx_ii, alpha){
+    ab <- saber_posterior( XX, rep(1,indx), tidx_ii, 
+                           prior=prior,  lambda=lambda, forget=forget)
+    min(1, (1 - pbeta(preq, ab[1], ab[2]))/alpha )
   },
-  tidx_ii = tidx
+  tidx_ii = tidx, alpha=alpha
   ))
   
   # Probability to tail requirement if next x=1
   Xsim_mc[ indx, ] <- 1
-  post1 <- t(apply( Xsim_mc[1:indx, ], MARGIN=2, FUN=function(XX, tidx_ii){
-    out1 <- saber_posterior( XX, rep(1,indx), tidx_ii, 
-                             prior=prior,  lambda=lambda, forget=forget)
-    out1
+  prob_sample_x1 <- t(apply( Xsim_mc[1:indx, ], MARGIN=2, FUN=function(XX, tidx_ii, alpha){
+    ab <- saber_posterior( XX, rep(1,indx), tidx_ii, 
+                           prior=prior,  lambda=lambda, forget=forget)
+    min(1, (1 - pbeta(preq, ab[1], ab[2]))/alpha )
   },
-  tidx_ii = tidx
+  tidx_ii = tidx, alpha=alpha
   ))
   
-  pests <- apply( post_pest, MARGIN=1, FUN=function(ab){ qbeta(0.5,ab[1],ab[2]) } )
-  prob_sample_x0 <- apply( 
-    post0, MARGIN=1, 
-    FUN=function(ab){ min(1, 1 - pbeta(preq, ab[1], ab[2])) } 
-  )
-  prob_sample_x1 <- apply( 
-    post1, MARGIN=1, 
-    FUN=function(ab){ min(1, 1 - pbeta(preq, ab[1], ab[2])) }
-  )
-  
-  prob_sample_wt <- median( prob_sample_x0*(1-pests) + prob_sample_x1*(pests) )
   prob_sample <- switch(
     forecast_type,
-    optimistic  = prob_sample_x0,
-    pessimistic = prob_sample_x1,
-    estimated   = prob_sample_wt
+    optimistic  = median( prob_sample_x0 ),
+    pessimistic = median( prob_sample_x1 ),
+    estimated   = median( prob_sample_x0*(1-pests) + prob_sample_x1*(pests) )
   )
   
-  return(prob_sample)
+  # ## Adjust sampling rate
+  prob_sample_mod <- 1 - (1 - prob_sample)^srate_penalty
+  
+  return( prob_sample_mod )
   
 }
 
@@ -274,6 +269,7 @@ cps_prob_sample <- function(Xsim_mc, tidx, preq, forecast_type, control ){
 #' @param control object of class `saber_control`.
 #' @param cps_control object of class `cps_control`.
 #' @param seed (numeric) Seed for the random number generator.
+#' @param verbose (logical) Whether or not to print indication of progress through simulation.
 #' 
 #' 
 #' @details
@@ -405,9 +401,8 @@ cps_sim_case <- function( y, n, p, tidx, preq, alpha, control, cps_control, seed
     # Update the indexes
     if( verbose & (indx %% 10 == 0) ){ cat( "n =", indx, "\n") }
     
-    
     prob_sample <- cps_prob_sample(
-      Xsim_mc, tidx=tidx[1:indx], preq=preq,
+      Xsim_mc, tidx=tidx[1:indx], preq=preq, alpha=alpha,
       forecast_type=forecast_type, control=control
     )
     prob_sampled[indx] <- prob_sample
@@ -439,7 +434,6 @@ cps_sim_case <- function( y, n, p, tidx, preq, alpha, control, cps_control, seed
     alpha   = alpha,
     control = control
   )
-  
   
   return(
     list(
