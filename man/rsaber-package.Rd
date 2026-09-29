@@ -46,10 +46,10 @@ Under review
 \author{
 \strong{Maintainer}: Casey M. Jelsema \email{cmjelse@sandia.gov}
 
-Authors:
+Other contributors:
 \itemize{
-  \item Mason Parsons \email{mparson@sandia.gov}
-  \item Olivia Beck \email{olbeck@sandia.gov}
+  \item Mason Parsons \email{mparson@sandia.gov} [contributor]
+  \item Olivia Beck \email{olbeck@sandia.gov} [contributor]
 }
 
 }

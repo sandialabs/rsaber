@@ -209,6 +209,7 @@ saber_posterior <- function( x, n, tidx, prior=c(1,1), lambda, forget="exponenti
 saber_control <- function(prior = c(1, 1),
                           lambda = NULL,
                           forget = c("exponential", "fixed_window", "total_samples", "none"),
+                          sample_penalty = 1,
                           frame = c("total", "unsampled", "accepted")) {
   
   frame <- match_saber_frame(frame)
@@ -217,8 +218,8 @@ saber_control <- function(prior = c(1, 1),
     forget <- match.arg(forget)
   }
   
-  if (!is.numeric(prior) || length(prior) != 2 || any(!is.finite(prior)) || any(prior <= 0)) {
-    stop("Argument 'prior' must be a positive numeric vector of length 2.", call. = FALSE)
+  if (!is.numeric(prior) || length(prior) != 2 || any(!is.finite(prior)) || any(prior < 0)) {
+    stop("Argument 'prior' must be a non-negative numeric vector of length 2.", call. = FALSE)
   }
   
   if (!is.character(forget) && !is.function(forget)) {
@@ -237,11 +238,16 @@ saber_control <- function(prior = c(1, 1),
     stop("Argument 'lambda' must be a finite numeric scalar.", call. = FALSE)
   }
   
+  if (!is.numeric(sample_penalty) || length(sample_penalty) != 1 || any(!is.finite(sample_penalty))  ) {
+    stop("Argument 'sample_penalty' must be a non-negative and finite scaler.", call. = FALSE)
+  }
+  
   structure(
     list(
       prior = prior,
       lambda = lambda,
       forget = forget,
+      sample_penalty = sample_penalty,
       frame = frame
     ),
     class = "saber_control"
@@ -281,8 +287,8 @@ validate_saber_control <- function(control) {
   forget <- control[["forget"]]
   frame <- control[["frame"]]
   
-  if (!is.numeric(prior) || length(prior) != 2 || any(!is.finite(prior)) || any(prior <= 0)) {
-    stop("control[['prior']] must be a positive numeric vector of length 2.", call. = FALSE)
+  if (!is.numeric(prior) || length(prior) != 2 || any(!is.finite(prior)) || any(prior < 0)) {
+    stop("control[['prior']] must be a non-negative numeric vector of length 2.", call. = FALSE)
   }
   
   if (!is.numeric(lambda) || length(lambda) != 1 || !is.finite(lambda)) {

@@ -1,6 +1,6 @@
 Package: rsaber
 Title: Sequential Adaptive Bayesian Estimation for Reliability
-Version: 0.0.0.1
+Version: 0.0.0.2
 Imports: stats, methods, future, doFuture, foreach
 Depends: R (>= 4.1.0)
 Suggests: tinytest
